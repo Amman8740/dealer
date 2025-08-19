@@ -6,12 +6,18 @@ const withPWA = nextPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: false, // we'll test in production build (see step 4)
-  fallbacks: {
-    document: '/offline', // 👈 serve this when a page isn't cached yet
-  },
+
+  // 👇 don’t run SW in dev (avoids confusing stale caches during development)
+  disable: process.env.NODE_ENV === 'development',
+
+  // 👇 shown when a page isn’t cached yet
+  fallbacks: { document: '/offline' },
+
+  // allow larger JSON payloads to be cached
+  maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+
   runtimeCaching: [
-    // Cache HTML/page navigations so refresh/deep-links work offline
+    // HTML navigations
     {
       urlPattern: ({ request }) => request.mode === 'navigate',
       handler: 'NetworkFirst',
@@ -21,20 +27,22 @@ const withPWA = nextPWA({
         expiration: { maxEntries: 50, maxAgeSeconds: 7 * 24 * 60 * 60 },
       },
     },
-    // Cache GET /api/* (your data)
+
+    // GET /api/*
     {
       urlPattern: ({ url, request }) =>
-        request.method === 'GET' && url.pathname.startsWith('/api/'),
+        request.method === 'GET' && url.origin === self.location.origin && url.pathname.startsWith('/api/'),
       handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'api-get',
         expiration: { maxEntries: 300, maxAgeSeconds: 24 * 60 * 60 },
       },
     },
-    // Queue writes while offline
+
+    // Queue writes while offline (Background Sync)
     {
       urlPattern: ({ url, request }) =>
-        request.method === 'POST' && url.pathname.startsWith('/api/'),
+        request.method === 'POST' && url.origin === self.location.origin && url.pathname.startsWith('/api/'),
       handler: 'NetworkOnly',
       options: {
         backgroundSync: { name: 'api-post-queue', options: { maxRetentionTime: 24 * 60 } },
@@ -42,7 +50,7 @@ const withPWA = nextPWA({
     },
     {
       urlPattern: ({ url, request }) =>
-        request.method === 'PATCH' && url.pathname.startsWith('/api/'),
+        request.method === 'PATCH' && url.origin === self.location.origin && url.pathname.startsWith('/api/'),
       handler: 'NetworkOnly',
       options: {
         backgroundSync: { name: 'api-patch-queue', options: { maxRetentionTime: 24 * 60 } },
@@ -50,17 +58,17 @@ const withPWA = nextPWA({
     },
     {
       urlPattern: ({ url, request }) =>
-        request.method === 'DELETE' && url.pathname.startsWith('/api/'),
+        request.method === 'DELETE' && url.origin === self.location.origin && url.pathname.startsWith('/api/'),
       handler: 'NetworkOnly',
       options: {
         backgroundSync: { name: 'api-delete-queue', options: { maxRetentionTime: 24 * 60 } },
       },
     },
-    // Nice to have: Next static & assets
+
+    // Next static & assets
     { urlPattern: /^\/_next\/static\/.*/i, handler: 'StaleWhileRevalidate', options: { cacheName: 'next-static' } },
     {
-      urlPattern: ({ url }) =>
-        /\.(?:png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|eot)$/.test(url.pathname),
+      urlPattern: ({ url }) => /\.(?:png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|eot)$/.test(url.pathname),
       handler: 'StaleWhileRevalidate',
       options: { cacheName: 'assets' },
     },
@@ -69,11 +77,8 @@ const withPWA = nextPWA({
 
 const baseConfig: NextConfig = {
   reactStrictMode: true,
-
-  // ✅ Ignore TS errors at build time
   typescript: { ignoreBuildErrors: true },
-
-  // ✅ Ignore ESLint errors at build time
   eslint: { ignoreDuringBuilds: true },
 };
+
 export default withPWA(baseConfig);

@@ -4,6 +4,7 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import OnlineBadge from "@/components/OnlineBadge"; // 👈 new
 import Precache from "@/components/PreCache";
+import OfflineSync from "@/components/OfflineSync";
 
 export const metadata: Metadata = {
   title: "Dealer App",
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Sidebar />
           <main className="flex-1 p-6">
             <Precache />
+            <OfflineSync /> 
             {children}
           </main>
         </div>
