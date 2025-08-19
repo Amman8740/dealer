@@ -40,8 +40,8 @@ export default function Dashboard() {
   const weekStartISO = addDaysUTC(todayISO, -6); // last 7 days inclusive
 
   // ——— Helpers
-  const money = (n: number) =>
-    new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n || 0);
+ const money = (n: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
 
   // ——— KPIs (use ISO string comparisons to avoid TZ issues)
   const salesToday = sales.filter((s) => s.date === todayISO);
